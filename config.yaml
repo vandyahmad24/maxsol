@@ -1,0 +1,11 @@
+rest:
+  port: 8083
+  base_url : "localhost:8083"
+db:
+  address: "localhost"
+  dbname: maxsol
+  port: 8889
+  ssl: disable
+  user: root
+  password: root
+
