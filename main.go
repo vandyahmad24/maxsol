@@ -51,6 +51,7 @@ func main() {
 	db := config.InitDb(cfg)
 	router.CakeRouter(app, db)
 	router.OrderRouter(app, db)
+	router.AuthRouter(app, db)
 
 	go func() {
 		app.Listen(fmt.Sprintf(":%d", cfg.Rest.Port))

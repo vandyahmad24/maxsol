@@ -12,13 +12,13 @@ func Up() error {
 	if err != nil {
 		return err
 	}
-	commnad := fmt.Sprintf(`migrate -database "mysql://%s:%s@tcp(%s:%d)/%s" -path migration up`,
-		cfg.Db.User,
-		cfg.Db.Password,
-		cfg.Db.Address,
-		cfg.Db.Port,
-		cfg.Db.DbName)
-	fmt.Println("command ", commnad)
+	//commnad := fmt.Sprintf(`migrate -database "mysql://%s:%s@tcp(%s:%d)/%s" -path migration up`,
+	//	cfg.Db.User,
+	//	cfg.Db.Password,
+	//	cfg.Db.Address,
+	//	cfg.Db.Port,
+	//	cfg.Db.DbName)
+	//fmt.Println("command ", commnad)
 	command := exec.Command("migrate",
 		"-database", fmt.Sprintf("mysql://%s:%s@tcp(%s:%d)/%s",
 			cfg.Db.User,

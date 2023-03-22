@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"vandyahmad24/maxsol/app/domain/entity"
 	"vandyahmad24/maxsol/app/domain/repository/cake_repository"
@@ -151,7 +152,6 @@ func (e *OrderUsecase) CreateOrderBulk(ctx context.Context, in interface{}) (int
 		return nil, errors.New("request cannot be nil")
 	}
 
-	var result []interface{}
 	var resultError []string
 	var wg sync.WaitGroup
 
@@ -179,7 +179,7 @@ func (e *OrderUsecase) CreateOrderBulk(ctx context.Context, in interface{}) (int
 				resultError = append(resultError, err.Error())
 				return
 			}
-			result = append(result, data)
+
 			util.LogObject(sp, "data order", data)
 		}(v)
 	}
@@ -187,9 +187,108 @@ func (e *OrderUsecase) CreateOrderBulk(ctx context.Context, in interface{}) (int
 	wg.Wait()
 
 	response := make(map[string]interface{})
-	response["success"] = result
-	response["error"] = resultError
+	response["error_data"] = resultError
+	response["total_data"] = len(inputOrder.Data)
+	response["total_success"] = len(inputOrder.Data) - len(resultError)
 
 	return response, err
 
+}
+
+func (e *OrderUsecase) CreateOrderBulkWithWorker(ctx context.Context, in interface{}) (interface{}, error) {
+	sp := util.CreateChildSpan(ctx, string("Interactor"))
+	defer sp.Finish()
+	util.LogRequest(sp, in)
+
+	var inputOrder *entity.OrderInputBulk
+	err := mapstructure.Decode(in, &inputOrder)
+	if err != nil {
+		util.LogError(sp, err)
+		return nil, errors.New("request cannot be nil")
+	}
+
+	jobs := make(chan entity.OrderInput, 0)
+	wg := new(sync.WaitGroup)
+	errChan := make(chan error, len(inputOrder.Data))
+
+	go e.dispatchWorkers(ctx, jobs, wg, errChan)
+	e.readData(inputOrder, jobs, wg)
+	var resultError []string
+	go func() {
+		for err := range errChan {
+			if err != nil {
+				wg.Add(1)
+				fmt.Println("error chan ", err)
+				resultError = append(resultError, err.Error())
+				wg.Done()
+			}
+		}
+	}()
+
+	wg.Wait()
+	close(errChan)
+
+	response := make(map[string]interface{})
+	response["error_data"] = resultError
+	response["total_data"] = len(inputOrder.Data)
+	response["total_success"] = len(inputOrder.Data) - len(resultError)
+
+	return response, err
+
+}
+
+func (e *OrderUsecase) dispatchWorkers(ctx context.Context, jobs <-chan entity.OrderInput, wg *sync.WaitGroup, errChan chan<- error) {
+	for workerIndex := 0; workerIndex <= 10; workerIndex++ {
+		go func(ctx context.Context, workerIndex int, jobs <-chan entity.OrderInput, wg *sync.WaitGroup, errChan chan<- error) {
+			counter := 0
+
+			for job := range jobs {
+				if err := e.doTheJob(ctx, workerIndex, counter, job); err != nil {
+					errChan <- err
+				}
+				wg.Done()
+				counter++
+			}
+		}(ctx, workerIndex, jobs, wg, errChan)
+	}
+}
+
+func (e *OrderUsecase) doTheJob(ctx context.Context, workerIndex, counter int, v entity.OrderInput) error {
+	sp := util.CreateChildSpan(ctx, string("doTheJob"))
+	defer sp.Finish()
+	dataCake, err := e.cakeRepository.Get(sp, v.CakeId)
+	if err != nil {
+		util.LogError(sp, err)
+		err = errors.New(fmt.Sprintf("Cake not found in cake_id : %d", v.CakeId))
+		//resultError = append(resultError, erro.Error())
+		return err
+	}
+	util.LogObject(sp, "cake", dataCake)
+
+	data, err := e.repository.InsertOrder(sp, &model.Order{
+		CakeId: v.CakeId,
+		Qty:    v.Qty,
+	})
+	if err != nil {
+		util.LogError(sp, err)
+		//resultError = append(resultError, err.Error())
+		return err
+	}
+	//result = append(result, data)
+	util.LogObject(sp, "data order", data)
+
+	if counter%100 == 0 {
+		log.Println("=> worker", workerIndex, "inserted", counter, "data")
+	}
+	return nil
+}
+
+func (e *OrderUsecase) readData(input *entity.OrderInputBulk, jobs chan<- entity.OrderInput, wg *sync.WaitGroup) {
+
+	for _, v := range input.Data {
+		wg.Add(1)
+		jobs <- v
+	}
+
+	close(jobs)
 }

@@ -5,16 +5,15 @@ import (
 	"time"
 )
 
-type Order struct {
+type User struct {
 	Id        int       `json:"id"`
-	CakeId    int       `json:"cake_id"`
-	Qty       int       `json:"qty"`
-	Cake      *Cake     `gorm:"foreignKey:cake_id;references:id" json:"cake"`
+	Name      string    `json:"name"`
+	Password  string    `json:"password"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func (u *Order) BeforeCreate(tx *gorm.DB) (err error) {
+func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	u.CreatedAt = time.Now()
 	u.UpdatedAt = time.Now()
 	return nil

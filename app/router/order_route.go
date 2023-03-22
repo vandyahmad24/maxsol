@@ -6,6 +6,7 @@ import (
 	"vandyahmad24/maxsol/app/domain/repository/cake_repository"
 	"vandyahmad24/maxsol/app/domain/repository/order_repository"
 	"vandyahmad24/maxsol/app/handler"
+	"vandyahmad24/maxsol/app/middleware"
 	"vandyahmad24/maxsol/app/usecase/order_usecase"
 )
 
@@ -14,10 +15,11 @@ func OrderRouter(router *fiber.App, db *gorm.DB) {
 	cakeRepository := cake_repository.NewCake(db)
 	orderService := order_usecase.NewOrderUsecase(orderRepository, cakeRepository)
 	roleHandler := handler.NewOrderServiceService(orderService)
-	router.Post("/orders", roleHandler.CreateOrderService)
-	router.Get("/orders", roleHandler.GetAllOrderService)
-	router.Get("/orders/:id", roleHandler.GetOrderService)
-	router.Delete("/orders/:id", roleHandler.DeleteOrderService)
-	router.Patch("/orders/:id", roleHandler.UpdateOrderService)
-	router.Post("/orders-bulk", roleHandler.CreateBulkOrderService)
+	api := router.Group("", middleware.JWTProtected)
+	api.Post("/orders", roleHandler.CreateOrderService)
+	api.Get("/orders", roleHandler.GetAllOrderService)
+	api.Get("/orders/:id", roleHandler.GetOrderService)
+	api.Delete("/orders/:id", roleHandler.DeleteOrderService)
+	api.Patch("/orders/:id", roleHandler.UpdateOrderService)
+	api.Post("/orders-bulk", roleHandler.CreateBulkOrderService)
 }

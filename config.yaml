@@ -1,6 +1,7 @@
 rest:
   port: 8083
   base_url : "localhost:8083"
+  jwt_key: "1cf4ce5d-3c06-4f93-977b-8f6921a97bfc"
 db:
   address: "localhost"
   dbname: maxsol

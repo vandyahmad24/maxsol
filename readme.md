@@ -20,7 +20,7 @@
 1. docker-compose up -d
 
 ### API Documentations
-1. https://www.getpostman.com/collections/45e48f7893fc4710b36f
+1. Import postman collection
 ### How to run unit test
 1. First you must go to usecase folder
  ``` cd app/usecase/cakeusecase```

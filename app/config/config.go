@@ -9,6 +9,7 @@ type Config struct {
 	Rest struct {
 		Port    int    `mapstructure:"port"`
 		BaseURL string `mapstructure:"base_url"`
+		JwtKey  string `mapstructure:"jwt_key"`
 	} `mapstructure:"rest"`
 	Db struct {
 		Address  string `mapstructure:"address"`
